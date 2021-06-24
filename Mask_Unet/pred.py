@@ -9,12 +9,14 @@ import numpy as np
 from tensorflow.core.protobuf.config_pb2 import ConfigProto
 from tensorflow.keras.models import load_model
 import io, os
-
+from config import cfg
+from matplotlib import pyplot as plt
 def main(_args):
     config = ConfigProto()
     config.gpu_options.allow_growth = True
-    input_size = 416
-    image_path = "D:\python\pjt_odo\ImagesPart2/tr_img_05203.jpg"
+    input_size = cfg.TRAIN.INPUT_SIZE
+    # image_path = "D:\python\pjt_odo\ImagesPart2/tr_img_05350.jpg"
+    image_path = "D:\python\pjt_odo\ImagesPart2/tr_img_05030.jpg"
     image = cv2.imread(image_path)
 
     original_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
@@ -27,10 +29,17 @@ def main(_args):
     batch_data = tf.constant(images_data)
 
 
-    model = load_model("./checkpoints/segmentation_model2.h5")
+    # model = load_model("./checkpoints/segmentation_model_ori.h5")
+    model = load_model("./checkpoints/segmentation_model5.h5")
+    # model.summary()
     result = model.predict(batch_data)
-    result = np.array(result).reshape(input_size, input_size, 3)
+    # result = (model.predict(batch_data)[0,:,:,:] > 0.5).astype(np.uint8)
+    result = np.array(result).reshape(input_size, input_size)
+    plt.imshow(result, cmap="gray")
+
+    # result = np.array(result).reshape(input_size, input_size, 3)
     cv2.imshow("img",image_datas)
+    # cv2.imshow("result",result*255)
     cv2.imshow("result",result)
     cv2.waitKey(0)
     cv2.destroyAllWindows()

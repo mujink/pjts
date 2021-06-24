@@ -29,7 +29,7 @@ class Dataset(object):
         self.batch_count = 0
         self.data_aug = cfg.TRAIN.DATA_AUG
         self.num_classes = len(self.classstext)
-
+        self.maxmask = cfg.TRAIN.MAXMASK
     def class_num(self, ann):
         lst_class = []
         lst = {}
@@ -41,7 +41,7 @@ class Dataset(object):
                 value = line.strip().split(",")
                 typ = str(value[8])
                 name = str(value[9])
-                if typ == "Korean" and name is not ["###", None]:
+                if typ == "Korean" and name != "###":
                     lst_class.append(name)
         lst_class = set(lst_class)
         for i, tx in enumerate(lst_class):
@@ -74,7 +74,6 @@ class Dataset(object):
                 left_donw_y = float(value[7])
                 typ = str(value[8])
                 name = str(value[9])
-                lst = self.classstext
                 if typ == "Korean" and name != "###":
                     name = self.classstext[name]
                     string += " {},{},{},{},{},{},{},{},{}".format(
@@ -117,17 +116,19 @@ class Dataset(object):
                     self.batch_size,
                     self.train_input_size,
                     self.train_input_size,
-                    3
+                    1
                 ),
                 dtype=np.float32,
             )
-            batch_path = np.zeros(
-                (
-                    self.batch_size,
-                    1
-                ),
-                dtype=np.str,
-            )
+            # batch_Class = np.zeros(
+            #     (
+            #         self.batch_size,
+            #         self.maxmask,
+            #         self.num_classes
+            #     ),
+            #     dtype=np.str,
+            # )
+            batch_Class = []
             num = 0
             if self.batch_count < self.num_batchs:
                 while num < self.batch_size:
@@ -135,22 +136,26 @@ class Dataset(object):
                     if index >= self.num_samples:
                         index -= self.num_samples
                     annotation = self.annotations[index]
-                    
                     image, bboxes = self.parse_annotation(annotation)
                     (   
                         mask,
                         label
                     ) = self.preprocess_true_boxes(bboxes)
+                    # print(self.num_classes)
+                    # print(np.array(label).shape)
+                    # label = np.array(label)
                     batch_image[num, :, :, :] = image
                     batch_mask[num, :, :, :] = mask
+                    batch_Class.append(label)
                     num += 1
                 self.batch_count += 1 
 
+
                 return (batch_image,
-                        batch_mask)
+                        batch_mask,
+                        batch_Class)
             else:
                 self.batch_count = 0
-                # np.random.shuffle(self.annotations)
                 raise StopIteration
  
     def parse_annotation(self, annotation):
@@ -185,9 +190,11 @@ class Dataset(object):
 
     def preprocess_true_boxes(self, bboxes):
         # 불러온 데이터 셋에서 모델에 맞게 박스를 지정하여 반환
-        mask = np.zeros([self.train_input_size, self.train_input_size, 3], np.uint8)
+        mask = np.zeros([self.train_input_size, self.train_input_size, 1], np.uint8)
         label = []
         kernel = np.ones((3,3), np.uint8)
+        # count = 2
+
         for bbox in bboxes:
             bbox_coor = bbox[:8]
             bbox_class_ind = bbox[8]
@@ -205,15 +212,11 @@ class Dataset(object):
                             [bbox_coor[4],bbox_coor[5]],
                             [bbox_coor[2],bbox_coor[3]],
                             [bbox_coor[0],bbox_coor[1]]]).astype(np.int32)
-                            
-            mask = cv2.drawContours(mask, [pts], -1, (1, 1, 1), -1, cv2.LINE_AA)
-        # cv2.imshow("mask_img", mask)
-        # cv2.waitKey(0)
-        # cv2.destroyAllWindows()
-        # mask = cv2.erode(mask, kernel, iterations=2)
-        # cv2.imshow("mask_img", mask)
-        # cv2.waitKey(0)
-        # cv2.destroyAllWindows()
+
+            mask = cv2.drawContours(mask, [pts], -1, (1), -1, cv2.LINE_AA)
+            # mask = cv2.drawContours(mask, [pts], -1, (count), -1, cv2.LINE_AA)
+            # mask = cv2.drawContours(mask, [pts], -1, (0), 3, cv2.LINE_AA)
+            # count += 1
         return mask, label
 
     def __len__(self):

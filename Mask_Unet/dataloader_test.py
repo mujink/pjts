@@ -9,14 +9,17 @@ green = (0,255,0)
 epochs = 8
 for epoch in range(epochs):
     a = 0
-    for image_data, target in trainset:
+    for image_data, target, bathe_class in trainset:
         a += 1
         bach = (len(image_data))
         for i in range(bach):
             img = image_data[i]
             mask = target[i]
-            print(mask.shape)
-            # cv2.imshow("img", img)
-            # cv2.imshow("mask_img", mask)
-            # cv2.waitKey(0)
-            # cv2.destroyAllWindows()
+            label = bathe_class[i]
+            cv2.imshow("img", img)
+            cv2.imshow("1", mask[:,:,0])
+            cv2.imshow("2", mask[:,:,1])
+            cv2.imshow("3", mask[:,:,2])
+            cv2.imshow("4", mask)
+            cv2.waitKey(0)
+            cv2.destroyAllWindows()
